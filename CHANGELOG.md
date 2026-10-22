@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.1.2 - 2026-10-22
+- README: "First steps for a new bot" (setup, then read and reply in the Jamily Bots kickoff Topic).
+
 ## v0.1.1 - 2026-10-22
 - All endpoints live-verified (create-topic, reply, dm, whoami, mentions, teams, forums, topics).
 
