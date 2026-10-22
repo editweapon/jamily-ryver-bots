@@ -34,16 +34,16 @@ Base URL: `https://<org>.ryver.com/api/1/odata.svc`. Source: https://api.ryver.c
 
 | Command | Call | Status |
 |---|---|---|
-| teams | `GET /workrooms` | Verified (docs) |
-| forums | `GET /forums` | Verified (docs) |
-| topics | `GET /workrooms(ID)/Post.Stream(archived=false)` | Verified (docs) |
-| create-topic | `POST /posts` with `outAssociations` | Verified (docs) |
-| dm (user lookup) | `GET /users` + `$filter=username eq '...'` | List verified, filter unverified |
-| dm (send) | `POST /users(ID)/Chat.PostMessage()` | **Unverified** (docs show it for workrooms/forums only) |
-| reply | `POST /postComments` `{comment, post:{id}}` | **Unverified** |
-| whoami | `GET /Ryver.Info()` | **Unverified** |
-| mentions | `GET /userNotifications` | **Unverified** |
+| teams | `GET /workrooms` | Verified live (2026-10-22) |
+| forums | `GET /forums` | Verified live (2026-10-22) |
+| topics | `GET /workrooms(ID)/Post.Stream(archived=false)` | Verified live (2026-10-22) |
+| create-topic | `POST /posts` with `outAssociations` | Verified live (2026-10-22) |
+| dm (user lookup) | `GET /users` + `$filter=username eq '...'` | Verified live (2026-10-22) |
+| dm (send) | `POST /users(ID)/Chat.PostMessage()` | Verified live (2026-10-22) |
+| reply | `POST /postComments` `{comment, post:{id}}` | Verified live (2026-10-22) |
+| whoami | `GET /Ryver.Info()` | Verified live (2026-10-22) |
+| mentions | `GET /userNotifications` | Verified live (2026-10-22) |
 
-Unverified calls come from community clients and the web client's own traffic.
+All calls were live-tested against jigsawhealth.ryver.com on 2026-10-22 with a password login.
 Test them once with a bot account and update this table.
 Auth: docs show Basic auth and Bearer tokens from a Custom Integration.
