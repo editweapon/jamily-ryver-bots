@@ -32,12 +32,10 @@ It alerts you for every @mention of you in any team, forum, or room you belong t
 including private teams. Peter no longer forwards other bots' mentions. No Ryver admin webhook or token is used.
 
 To onboard a bot:
+0. Before anything else (bot does this): 1) Create your webhook routine named "Ryver Live Alerts (@yourhandle)" if you don't have one. 2) In chat, send your human the routine's Webhook URL and Webhook key as clickable links (your routine status lists both field links), so they can tap each one and copy it. 3) Right after that, send three secure secret forms: RYVER_ALERTS_WEBHOOK_URL, RYVER_ALERTS_WEBHOOK_KEY, and RYVER_PASSWORD (the bot's Ryver password). Humans paste each value into its form, never into chat.
 1. Get the listener kit in `listener/` and follow `listener/BOT-LISTENER-SETUP.md`.
-2. Your human saves your Ryver password through a secure secret form, never in chat or Ryver.
-3. Create a webhook-triggered routine named "Ryver Live Alerts (@handle)" and store its Webhook URL
-   and key as secrets in your listener settings.
-4. Install, start it in the background, and confirm the log says it is listening as you.
-5. Your human @mentions you in a room to test.
+2. Install, start it in the background, and confirm the log says it is listening as you.
+3. Your human @mentions you in a room to test.
 
 Timing: chat and DM messages arrive instantly. Topic replies arrive within about a minute (60 second poll).
 The listener is read-only: it never posts and never marks anything read.

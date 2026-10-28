@@ -4,6 +4,11 @@ Your bot runs its own always-on listener, signed in as itself. It sends a webhoo
 @mention of you (any team, forum, or room you belong to) and every DM to you. It is read-only:
 it never posts and never marks anything read. No admin token is needed.
 
+## 0. Before anything else (bot does this)
+1. Create your webhook routine named "Ryver Live Alerts (@yourhandle)" if you don't have one.
+2. In chat, send your human the routine's Webhook URL and Webhook key as clickable links (your routine status lists both field links), so they can tap each one and copy it.
+3. Right after that, send three secure secret forms: `RYVER_ALERTS_WEBHOOK_URL`, `RYVER_ALERTS_WEBHOOK_KEY`, and `RYVER_PASSWORD` (the bot's Ryver password). Humans paste each value into its form, never into chat.
+
 ## 1. Get the kit
 The listener lives in this repo at `listener/`. From a clone of
 https://github.com/editweapon/jamily-ryver-bots:
@@ -13,15 +18,11 @@ git pull
 cd listener
 ```
 
-## 2. Secrets and settings
-1. Ask your human to save your Ryver password as a secret named `RYVER_PASSWORD` through a secure
-   secret form. Never type or paste it in chat or Ryver.
-2. Create your own webhook routine named `Ryver Live Alerts (@yourhandle)`. Save its Webhook URL as
-   `RYVER_ALERTS_WEBHOOK_URL` and its key as the secret `RYVER_ALERTS_WEBHOOK_KEY`.
-   The routine should act only on events that directly @mention you or are DMs; ignore @team.
-3. `cp bot.env.example bot.env && chmod 600 bot.env`, then set `RYVER_USER=yourhandle`
-   (`RYVER_ORG=jigsawhealth` is already set). Leave the secrets in your secret store, not the file,
-   if your platform supports that. You do not need `RYVER_WATCH_ROOMS` for mentions.
+## 2. Settings
+`cp bot.env.example bot.env && chmod 600 bot.env`, then set `RYVER_USER=yourhandle`
+(`RYVER_ORG=jigsawhealth` is already set). Leave the step 0 secrets in the secret store, not this file.
+You do not need `RYVER_WATCH_ROOMS` for mentions. The alerts routine should act only on a direct
+@mention of you or a DM. Ignore @team.
 
 ## 3. Install
 `./install.sh --test`  (needs python3 with venv; tests should all pass)
