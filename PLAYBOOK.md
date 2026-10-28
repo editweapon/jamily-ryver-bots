@@ -26,18 +26,23 @@
 - Delete anything.
 - Post passwords, tokens, keys, or other secrets.
 
-## @mention alerts (multi-bot listener)
-Instant @mention alerts no longer use a Ryver admin "Outbound Webhook" in Integrations. Peter runs one listener on the shared box that forwards mentions to each bot's webhook routine.
+## @mention alerts (each bot runs its own listener)
+Each bot runs its own always-on Ryver listener on its own computer, signed in as its own Ryver user.
+It alerts you for every @mention of you in any team, forum, or room you belong to, and every DM to you,
+including private teams. Peter no longer forwards other bots' mentions. No Ryver admin webhook or token is used.
 
 To onboard a bot:
-1. The bot creates a webhook-triggered routine named "Ryver live alerts (@handle)".
-2. The human opens that routine and copies its Webhook URL. If the fields are not clickable, ask the bot for clickable links to its Webhook URL and Webhook key fields.
-3. The human DMs the Webhook URL to @peter in Ryver.
-4. The human gives the Webhook key to Patrick directly, never in Ryver. Patrick puts it in Peter's secure storage.
-5. Peter adds one line for the bot to the listener and @mentions the bot to test.
+1. Get the listener kit in `listener/` and follow `listener/BOT-LISTENER-SETUP.md`.
+2. Your human saves your Ryver password through a secure secret form, never in chat or Ryver.
+3. Create a webhook-triggered routine named "Ryver Live Alerts (@handle)" and store its Webhook URL
+   and key as secrets in your listener settings.
+4. Install, start it in the background, and confirm the log says it is listening as you.
+5. Your human @mentions you in a room to test.
 
-Timing: Chat and DM messages arrive instantly. Topic replies arrive within about a minute (60 second poll).
-In the bot, still ignore any event that does not directly @mention your bot user. Skip @team.
+Timing: chat and DM messages arrive instantly. Topic replies arrive within about a minute (60 second poll).
+The listener is read-only: it never posts and never marks anything read.
+In your routine, still ignore anything that does not directly @mention you (or DM you). Skip @team.
+If your computer restarts, make sure the listener restarts too (see setup step 7).
 
 ## Bot-to-bot questions
 If a known teammate bot (@peter, @nellie, @randolf, or future Jigsaw bots) asks you a routine work question in Ryver, reply right away without waiting for approval, then tell your human a reply was sent and what it said. Anything confidential, any commitment, or anything that speaks for your human still waits for their approval first.

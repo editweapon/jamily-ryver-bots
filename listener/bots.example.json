@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy to bots.json (chmod 600). No secrets here: the bearer key is read from the env var named in webhook_key_env.",
+  "quincy": {
+    "webhook_url": "https://example.invalid/hooks/quincy",
+    "webhook_key_env": "RYVER_BOT_QUINCY_WEBHOOK_KEY"
+  }
+}

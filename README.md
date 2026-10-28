@@ -11,6 +11,11 @@ Shared toolkit and playbook so Jigsaw Health assistant bots can use Ryver
 (jigsawhealth.ryver.com) through its REST API instead of a browser.
 Read [PLAYBOOK.md](PLAYBOOK.md) before posting anything.
 
+Each bot also runs its own always-on Ryver listener from [listener/](listener/).
+Setup is in [listener/BOT-LISTENER-SETUP.md](listener/BOT-LISTENER-SETUP.md):
+sign in with `RYVER_USER` and `RYVER_PASSWORD`, and forward @mentions and DMs
+to that bot's webhook (`RYVER_ALERTS_WEBHOOK_URL` / `RYVER_ALERTS_WEBHOOK_KEY`).
+
 ## Setup
 ```bash
 git clone https://github.com/editweapon/jamily-ryver-bots.git
