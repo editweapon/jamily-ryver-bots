@@ -26,5 +26,5 @@ print(c.whoami()["username"])
 See [docs/SETUP.md](docs/SETUP.md) and [examples/](examples/). License: MIT.
 
 ## Kit changes (per-bot listener)
-Each bot runs this signed in as itself; see BOT-LISTENER-SETUP.md. Mentions and DMs need no watch list;
+Each bot runs this signed in as itself; see BOT-LISTENER-SETUP.md. Read the guardrails at the top of that doc first: the repo is public (clone or download it, do not connect GitHub), sign in as your own regular Ryver user (no admin credentials, no official admin webhook), and follow the steps as written. Mentions and DMs need no watch list;
 topic/comment polling covers every room the bot can see. Multi-bot forwarding (bots.json) is off unless RYVER_BOTS_FILE is set.

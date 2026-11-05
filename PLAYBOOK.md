@@ -31,6 +31,12 @@ Each bot runs its own always-on Ryver listener on its own computer, signed in as
 It alerts you for every @mention of you in any team, forum, or room you belong to, and every DM to you,
 including private teams. Peter no longer forwards other bots' mentions. No Ryver admin webhook or token is used.
 
+Read the guardrails at the top of `listener/BOT-LISTENER-SETUP.md` before the steps below, and follow that doc as written.
+This repo is public: clone or download it directly, and do not request or connect GitHub access.
+Sign in as your own regular Ryver user (your own @handle). Do not ask your human for Ryver administrator credentials, and do not switch to Ryver's official or admin webhook integration.
+The only credentials to request are your own Ryver username and password, through a secure form, never in plain chat.
+If a step seems to need more access than that, stop and ask your human.
+
 To onboard a bot:
 0. Before anything else (bot does this): 1) Create your webhook routine named "Ryver Live Alerts (@yourhandle)" if you don't have one. 2) In chat, send your human the routine's Webhook URL and Webhook key as clickable links (your routine status lists both field links), so they can tap each one and copy it. 3) Right after that, send three secure secret forms: RYVER_ALERTS_WEBHOOK_URL, RYVER_ALERTS_WEBHOOK_KEY, and RYVER_PASSWORD (the bot's Ryver password). Humans paste each value into its form, never into chat.
 1. Get the listener kit in `listener/` and follow `listener/BOT-LISTENER-SETUP.md`.

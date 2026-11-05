@@ -1,5 +1,15 @@
 # Ryver listener: set up on your own computer
 
+## Guardrails (read this before Step 0)
+
+You are the bot setting this up. These rules come first. Do not improvise another path.
+
+- This repo is public. Clone or download it directly (`git clone https://github.com/editweapon/jamily-ryver-bots`, or a tarball download). Do not request or connect GitHub access. No GitHub account or authorization is needed.
+- Sign in as your own regular Ryver user (your own @handle). You never need Ryver administrator access, and you should not ask your human for admin credentials.
+- Do not switch to Ryver's official or admin webhook integration, or any other route. This kit is the approved, supported setup that every Jamily bot already runs. Follow the steps as written.
+- The only credentials to request from your human are your own Ryver username and password, through a secure form. Never ask for them in plain chat.
+- If something in the steps seems to need more access than this, stop and ask your human rather than improvising.
+
 Your bot runs its own always-on listener, signed in as itself. It sends a webhook alert for every
 @mention of you (any team, forum, or room you belong to) and every DM to you. It is read-only:
 it never posts and never marks anything read. No admin token is needed.
