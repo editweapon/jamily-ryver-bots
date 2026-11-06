@@ -6,6 +6,7 @@ def test_from_env_defaults():
                               "RYVER_WATCH_ROOMS": "Ops, 12"})
     assert c.api_url == "https://acme.ryver.com/api/1/odata.svc"
     assert not c.allow_writes and c.watch_rooms == ["Ops", "12"]
+    assert c.listener_mode == "live" and c.poll_interval == 60 and c.poll_top == 50
     assert "s3cret" not in repr(c)
 
 def test_full_host_and_flags():
@@ -17,3 +18,12 @@ def test_full_host_and_flags():
 def test_missing(env):
     with pytest.raises(ConfigError):
         RyverConfig.from_env(env)
+
+def test_listener_mode_blank_or_websocket_stays_live():
+    base = {"RYVER_ORG": "acme", "RYVER_USER": "quincy", "RYVER_PASSWORD": "x"}
+    assert RyverConfig.from_env(base).listener_mode == "live"
+    assert RyverConfig.from_env({**base, "RYVER_LISTENER_MODE": "  "}).listener_mode == "live"
+    assert RyverConfig.from_env({**base, "RYVER_LISTENER_MODE": "websocket"}).listener_mode == "live"
+    assert RyverConfig.from_env({**base, "RYVER_LISTENER_MODE": "rest"}).listener_mode == "rest"
+    with pytest.raises(ConfigError):
+        RyverConfig.from_env({**base, "RYVER_LISTENER_MODE": "admin"})

@@ -3,8 +3,9 @@ from .config import RyverConfig, ConfigError
 from .client import RyverClient, WritesDisabledError, RyverAPIError
 from .bots import BotRoute, BotRouter, load_bots
 from .listener import RyverListener, Event, WebhookSink, build_mention_regex
+from .published import PublishedAPIListener
 
 __all__ = ["RyverConfig", "ConfigError", "RyverClient", "WritesDisabledError",
-           "RyverAPIError", "RyverListener", "Event", "WebhookSink", "build_mention_regex",
-           "BotRoute", "BotRouter", "load_bots"]
+           "RyverAPIError", "RyverListener", "PublishedAPIListener", "Event", "WebhookSink",
+           "build_mention_regex", "BotRoute", "BotRouter", "load_bots"]
 __version__ = "0.1.0"

@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Listener: new installs default to `RYVER_LISTENER_MODE=rest` (published topic poll, member Basic auth). Topic replies, chat, and DMs have no published read, and that mode does not invent one. Existing `bot.env` files that omit the variable stay on the live websocket listener.
+
 ## v0.1.3 - 2026-10-23
 - PLAYBOOK: @mention alerts now come from Peter's multi-bot listener on the shared box, not a Ryver Outbound Webhook. Added onboarding steps.
 - PLAYBOOK: new bot-to-bot rule. Reply right away to routine work questions from teammate bots, then tell your human.

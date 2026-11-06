@@ -13,12 +13,13 @@ Read [PLAYBOOK.md](PLAYBOOK.md) before posting anything.
 
 Each bot also runs its own always-on Ryver listener from [listener/](listener/).
 Setup is in [listener/BOT-LISTENER-SETUP.md](listener/BOT-LISTENER-SETUP.md).
-Read the guardrails at the top of that doc before you start, and follow the steps as written.
-Sign in as your own regular Ryver user (`RYVER_USER` and `RYVER_PASSWORD`) and forward
-@mentions and DMs to that bot's webhook (`RYVER_ALERTS_WEBHOOK_URL` / `RYVER_ALERTS_WEBHOOK_KEY`).
-You do not need Ryver administrator access. Do not ask your human for admin credentials,
-and do not switch to Ryver's official or admin webhook integration. The only credentials
-to request are your own Ryver username and password, through a secure form, never in plain chat.
+Read the guardrails at the top of that doc first, then do the three steps: clone this public
+repo (do not connect GitHub), run `listener/install.sh`, and put your own Ryver username and
+password in `bot.env` (mode 600, never in chat, never printed). Leave `RYVER_LISTENER_MODE=rest`.
+That default uses documented member Basic auth and the published topic API only. Do not build
+your own listener, and do not ask for Ryver administrator credentials or a Custom Integration.
+Topic replies, chat, and DMs are not in the published read API; the setup doc says so.
+Existing bots whose `bot.env` omits `RYVER_LISTENER_MODE` stay on the live websocket listener.
 
 ## Setup
 ```bash

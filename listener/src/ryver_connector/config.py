@@ -17,6 +17,22 @@ def _list(v: Optional[str]) -> List[str]:
     return [x.strip() for x in (v or "").split(",") if x.strip()]
 
 
+_LIVE_MODES = {"live", "websocket", "ws"}
+_REST_MODES = {"rest", "published", "poll"}
+
+
+def _listener_mode(e) -> str:
+    """Unset or blank stays live so current bots are unaffected. New installs set rest in bot.env."""
+    if "RYVER_LISTENER_MODE" not in e:
+        return "live"
+    raw = (e.get("RYVER_LISTENER_MODE") or "").strip().lower()
+    if not raw or raw in _LIVE_MODES:
+        return "live"
+    if raw in _REST_MODES:
+        return "rest"
+    raise ConfigError("RYVER_LISTENER_MODE must be rest (published API) or live (websocket)")
+
+
 @dataclass
 class RyverConfig:
     org: str
@@ -31,6 +47,10 @@ class RyverConfig:
     mention_names: List[str] = field(default_factory=list)    # extra aliases
     group_mentions: List[str] = field(default_factory=lambda: ["team", "here", "all"])
     poll_interval: int = 60
+    poll_top: int = 50
+    # "live" keeps the existing websocket listener. "rest" is the published API poller.
+    # Missing RYVER_LISTENER_MODE stays "live" so existing bot.env files do not change behavior.
+    listener_mode: str = "live"
     state_dir: str = "./state"
     timezone: str = "UTC"
 
@@ -63,6 +83,8 @@ class RyverConfig:
             watch_rooms=_list(e.get("RYVER_WATCH_ROOMS")),
             mention_names=_list(e.get("RYVER_MENTION_NAMES")),
             poll_interval=int(e.get("RYVER_POLL_INTERVAL", "60")),
+            poll_top=max(1, int(e.get("RYVER_POLL_TOP", "50"))),
+            listener_mode=_listener_mode(e),
             state_dir=e.get("RYVER_STATE_DIR", "./state"),
             timezone=e.get("RYVER_TZ", "UTC"),
         )

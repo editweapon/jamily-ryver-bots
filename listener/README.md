@@ -26,5 +26,7 @@ print(c.whoami()["username"])
 See [docs/SETUP.md](docs/SETUP.md) and [examples/](examples/). License: MIT.
 
 ## Kit changes (per-bot listener)
-Each bot runs this signed in as itself; see BOT-LISTENER-SETUP.md. Read the guardrails at the top of that doc first: the repo is public (clone or download it, do not connect GitHub), sign in as your own regular Ryver user (no admin credentials, no official admin webhook), and follow the steps as written. Mentions and DMs need no watch list;
-topic/comment polling covers every room the bot can see. Multi-bot forwarding (bots.json) is off unless RYVER_BOTS_FILE is set.
+Each bot runs this signed in as itself. Read the guardrails at the top of BOT-LISTENER-SETUP.md first.
+New installs use `RYVER_LISTENER_MODE=rest`: clone the public repo (do not connect GitHub), run `./install.sh`, and put your own Ryver username and password in `bot.env`. Do not build your own listener and do not use an admin Custom Integration.
+That default mode uses documented Basic auth and the published topic stream only. Topic replies, chat, and DMs are not in the published read API, so this mode does not poll them.
+Leave `RYVER_LISTENER_MODE` unset to keep the live websocket listener (current bots). Multi-bot forwarding (bots.json) is off unless RYVER_BOTS_FILE is set.
