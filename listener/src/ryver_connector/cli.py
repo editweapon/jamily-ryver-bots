@@ -10,6 +10,14 @@ import sys
 from .config import ConfigError, RyverConfig
 from .client import RyverClient, WritesDisabledError, RyverAPIError
 from .listener import RyverListener
+from .published import PublishedAPIListener
+
+
+def build_listener(cfg: RyverConfig, callbacks, jsonl_path=None, poll_topics: bool = True):
+    """live (default when unset) is the existing websocket listener. rest is the published API poller."""
+    if cfg.listener_mode == "rest":
+        return PublishedAPIListener(cfg, callbacks, jsonl_path=jsonl_path)
+    return RyverListener(cfg, callbacks, jsonl_path=jsonl_path, poll_topics=poll_topics)
 
 
 def _out(x):
@@ -48,7 +56,7 @@ def main(argv=None) -> int:
     try:
         if a.cmd == "listen":
             cbs = [lambda ev: print(json.dumps(ev.to_dict()), flush=True)] if a.print else []
-            asyncio.run(RyverListener(cfg, cbs, jsonl_path=a.jsonl, poll_topics=not a.no_poll).run())
+            asyncio.run(build_listener(cfg, cbs, jsonl_path=a.jsonl, poll_topics=not a.no_poll).run())
             return 0
         c = RyverClient(cfg)
         cmds = {
@@ -66,6 +74,8 @@ def main(argv=None) -> int:
         return 0
     except WritesDisabledError as e:
         print(f"refused: {e}", file=sys.stderr); return 3
+    except PermissionError as e:
+        print(f"config error: {e}", file=sys.stderr); return 2
     except RyverAPIError as e:
         print(f"api error: {e}", file=sys.stderr); return 1
     except KeyboardInterrupt:

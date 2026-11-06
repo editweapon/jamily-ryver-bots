@@ -24,7 +24,9 @@ pip install git+https://github.com/<you>/ryver-connector.git   # or pip install 
 | `RYVER_WATCH_ROOMS` | no | comma list of room names/ids: all chat + topics there are forwarded |
 | `RYVER_MENTION_NAMES` | no | extra aliases treated as @mentions of the bot (username is automatic) |
 | `RYVER_GROUP_MENTIONS` | no | default `team,here,all`; set empty to ignore group mentions |
-| `RYVER_POLL_INTERVAL` | no | topic poll seconds (default 60) |
+| `RYVER_POLL_INTERVAL` | no | poll seconds (default 60) |
+| `RYVER_POLL_TOP` | no | topics per room per page in published mode (default 50) |
+| `RYVER_LISTENER_MODE` | no | Unset or `live` (default): live listener with the member username and password, same pattern as Ryver's Hubot adapter. `rest`: opt-in published topic poll (new topics only). |
 | `RYVER_STATE_DIR` | no | logs/events dir for `scripts/supervise.sh` (default `./state`) |
 
 \* one of username+password or token.
@@ -52,11 +54,10 @@ RYVER_ALLOW_WRITES=1 ryver-connector post dm 456 "approved reply"
 - Webhook key is a bearer secret; use HTTPS URLs only.
 
 ## Known limits
-- The live websocket (`User.Login(client='pyryver')` + `{"type":"auth"}` message) is **undocumented**
-  and may change without notice; the REST/OData API is more stable.
-- @mentions inside **topics/comments** outside watched rooms are not delivered over the websocket and
-  may be missed (topics are only polled in `RYVER_WATCH_ROOMS`).
-- Messages sent while the listener is disconnected are not replayed (use `history` to catch up).
+- The default listener (`RYVER_LISTENER_MODE` unset or `live`) signs in with the bot's own member username and password and listens live. That is the same pattern Ryver documents for Hubot: [Creating a Ryver Bot](https://api.ryver.com/ryvbot_overview.html), [Creating a Ryver Hubot](https://api.ryver.com/ryvbot_hubot_overview.html), and [hubot-ryver](https://github.com/ryverapp/hubot-ryver) (`HUBOT_RYVER_USERNAME` / `HUBOT_RYVER_PASSWORD`). BotKit and outbound webhooks are a different path: they need an organization admin and beta access from Ryver support. Do not use those for this kit.
+- `RYVER_LISTENER_MODE=rest` is an opt-in fallback. It uses HTTP Basic and only `GET /users`, `GET /workrooms`, `GET /forums`, and `GET /workrooms(id)/Post.Stream(archived=false)` (forums use the same path). Hard limits: new topics only; no topic replies, no chat, no DMs; about a 60 second poll; dedupe in `state/published-seen.json`.
+- On the live listener, chat @mentions and DMs arrive as they happen, in any room the account can see. Topics and topic replies are polled about every 60 seconds in those same rooms. `RYVER_WATCH_ROOMS` also forwards chat that does not @mention the bot.
+- Live websocket chat that arrives while the process is down is not replayed. The published topic mode stores a cursor and picks up new topics after a restart, up to 5 pages per room.
 - Room list is loaded at login; rooms the bot joins later are picked up on next reconnect.
 - Some endpoints (`Chat.React`, `Chat.History`) follow observed web-client behaviour and may differ by
   Ryver version.
