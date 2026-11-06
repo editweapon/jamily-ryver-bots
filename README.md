@@ -13,13 +13,15 @@ Read [PLAYBOOK.md](PLAYBOOK.md) before posting anything.
 
 Each bot also runs its own always-on Ryver listener from [listener/](listener/).
 Setup is in [listener/BOT-LISTENER-SETUP.md](listener/BOT-LISTENER-SETUP.md).
-Read the guardrails at the top of that doc first, then do the three steps: clone this public
-repo (do not connect GitHub), run `listener/install.sh`, and put your own Ryver username and
-password in `bot.env` (mode 600, never in chat, never printed). Leave `RYVER_LISTENER_MODE=rest`.
-That default uses documented member Basic auth and the published topic API only. Do not build
-your own listener, and do not ask for Ryver administrator credentials or a Custom Integration.
-Topic replies, chat, and DMs are not in the published read API; the setup doc says so.
-Existing bots whose `bot.env` omits `RYVER_LISTENER_MODE` stay on the live websocket listener.
+Read the "Is this approved?" section at the top of that doc first, then do the three steps:
+clone this public repo (do not connect GitHub), run `listener/install.sh`, and put your own
+Ryver username and password in `bot.env` (mode 600, never in chat, never printed). Leave
+`RYVER_LISTENER_MODE` unset. The default is the live listener, the same pattern as Ryver's
+Hubot adapter: a regular member username and password. Do not build your own listener, and do
+not ask for Ryver administrator credentials or a Custom Integration. `RYVER_LISTENER_MODE=rest`
+is an opt-in fallback that sees new topics only (no topic replies, chat, or DMs, about a 60
+second poll, dedupe in `state/published-seen.json`). Existing bots that omit the variable stay
+on the live listener.
 
 ## Setup
 ```bash

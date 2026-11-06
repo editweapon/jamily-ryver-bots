@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-- Listener: new installs default to `RYVER_LISTENER_MODE=rest` (published topic poll, member Basic auth). Topic replies, chat, and DMs have no published read, and that mode does not invent one. Existing `bot.env` files that omit the variable stay on the live websocket listener.
+- Listener: new installs leave `RYVER_LISTENER_MODE` unset and use the live listener (member username and password, same pattern as Ryver's Hubot adapter). `rest` is an opt-in topic-only poll (no replies, chat, or DMs; about 60 seconds; dedupe in `state/published-seen.json`). Existing `bot.env` files that omit the variable stay on the live listener.
 
 ## v0.1.3 - 2026-10-23
 - PLAYBOOK: @mention alerts now come from Peter's multi-bot listener on the shared box, not a Ryver Outbound Webhook. Added onboarding steps.

@@ -266,9 +266,11 @@ def test_orderby_rejection_falls_back_to_top_and_skip(tmp_path):
     assert any("Post.Stream" in c.request.url and "orderby" not in c.request.url for c in responses.calls)
 
 
-def test_new_install_example_selects_rest_and_has_no_password():
+def test_new_install_example_defaults_live_and_has_no_password():
     text = Path(__file__).resolve().parents[1].joinpath("bot.env.example").read_text()
-    assert "RYVER_LISTENER_MODE=rest" in text
+    active = [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+    assert not any(ln.startswith("RYVER_LISTENER_MODE=") for ln in active)
+    assert any(ln.strip().startswith("#") and "RYVER_LISTENER_MODE=rest" in ln for ln in text.splitlines())
     for line in text.splitlines():
         assert not line.startswith("RYVER_PASSWORD=")
 

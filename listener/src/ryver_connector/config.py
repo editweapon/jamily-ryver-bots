@@ -22,7 +22,7 @@ _REST_MODES = {"rest", "published", "poll"}
 
 
 def _listener_mode(e) -> str:
-    """Unset or blank stays live so current bots are unaffected. New installs set rest in bot.env."""
+    """Unset or blank stays live. That is the default for new installs and for current bots."""
     if "RYVER_LISTENER_MODE" not in e:
         return "live"
     raw = (e.get("RYVER_LISTENER_MODE") or "").strip().lower()
@@ -48,8 +48,8 @@ class RyverConfig:
     group_mentions: List[str] = field(default_factory=lambda: ["team", "here", "all"])
     poll_interval: int = 60
     poll_top: int = 50
-    # "live" keeps the existing websocket listener. "rest" is the published API poller.
-    # Missing RYVER_LISTENER_MODE stays "live" so existing bot.env files do not change behavior.
+    # Missing RYVER_LISTENER_MODE stays "live" (member login + chat listener).
+    # "rest" is the opt-in published topic poller.
     listener_mode: str = "live"
     state_dir: str = "./state"
     timezone: str = "UTC"

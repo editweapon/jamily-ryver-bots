@@ -1,4 +1,6 @@
-"""Live listener over Ryver's (undocumented) chat websocket + topic polling fallback.
+"""Live listener: member username/password, chat websocket, and topic polling.
+
+Same sign-in pattern Ryver documents for its Hubot adapter (a regular member user).
 
 Emits Event objects for: DMs to the bot, @mentions of the bot (and @team/@here/@all),
 and any message in watched rooms. Events go to a callback and/or a JSON webhook (Bearer auth).
