@@ -6,6 +6,11 @@ What Ryver publishes (https://api.ryver.com/ryvrest_api_examples.html):
   GET /workrooms(id)/Post.Stream(archived=false) and the same on /forums(id)
   Auth is HTTP Basic with the member's own username and password.
 
+Post.Stream leaves createUser deferred unless the request asks for it. This
+listener sends the documented OData $expand=createUser on that same read, then
+matches the user id to GET /users (display name and username). It does not call
+any other endpoint.
+
 Topic replies, chat history, and DMs have no published read. This module does not
 call Chat.History, postComments, userNotifications, or User.Login. See GAPS.
 """
@@ -16,9 +21,10 @@ import json
 import logging
 import os
 import random
+import re
 import time
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
 
@@ -72,6 +78,30 @@ def _create_user(post: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(cu, dict):
         return cu
     return {"id": cu}
+
+
+# OData metadata uris look like .../users(8) or .../users(id=8). A deferred
+# createUser link points at the post (.../posts(3)/createUser) and has no user id.
+_USER_IN_URI = re.compile(r"users\((?:id=)?(\d+)\)", re.I)
+
+
+def _user_id(value: Any) -> Optional[int]:
+    """Numeric Ryver user id, or None when the value is a deferred link or empty."""
+    if isinstance(value, dict):
+        if "id" in value and not isinstance(value.get("id"), dict):
+            found = _user_id(value.get("id"))
+            if found is not None:
+                return found
+        meta = value.get("__metadata") if isinstance(value.get("__metadata"), dict) else {}
+        match = _USER_IN_URI.search(str((meta or {}).get("uri") or ""))
+        return int(match.group(1)) if match else None
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        text = str(value).strip()
+        return int(text) if text else None
+    except (TypeError, ValueError):
+        return None
 
 
 class SeenState:
@@ -142,6 +172,8 @@ class PublishedAPIListener:
         self.http = requests.Session()
         self.timeout = 20
         self.orderby_ok = True
+        self.expand_user_ok = True
+        self.users: Dict[int, Dict[str, Any]] = {}
         self.state = SeenState(cfg.state_dir)
         self.state.load()
         self.me: Dict[str, Any] = {}
@@ -158,29 +190,71 @@ class PublishedAPIListener:
         if self.fetcher is not None:
             data = self.fetcher(path, params)
             return data if isinstance(data, dict) else {"results": data}
-        url = self.cfg.api_url + path
+        data, status = self._http_get(path, params)
+        if status == 400 and self._optional_query(params):
+            return self._get_without_rejected_query(path, params)
+        if status == 401:
+            raise PermissionError("login failed: HTTP 401")
+        if status >= 400 or data is None:
+            raise RyverAPIError(status, path)
+        return data
+
+    def _http_get(self, path: str, params: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], int]:
         r = self.http.get(
-            url,
+            self.cfg.api_url + path,
             params=params or None,
             auth=(self.cfg.username, self.cfg.password),
             headers={"Accept": "application/json"},
             timeout=self.timeout,
         )
-        if r.status_code == 400 and params.get("$orderby") and self.orderby_ok:
-            self.orderby_ok = False
-            log.warning("published topic query $orderby was rejected; continuing with $top and $skip only")
-            retried = {k: v for k, v in params.items() if k != "$orderby"}
-            return self._get(path, **retried)
-        if r.status_code == 401:
-            raise PermissionError("login failed: HTTP 401")
         if r.status_code >= 400:
-            raise RyverAPIError(r.status_code, path)
+            return None, r.status_code
         try:
             body = r.json()
         except ValueError:
             raise RyverAPIError(r.status_code, path)
         d = body.get("d", body) if isinstance(body, dict) else body
-        return d if isinstance(d, dict) else {"results": d}
+        return (d if isinstance(d, dict) else {"results": d}), r.status_code
+
+    def _optional_query(self, params: Dict[str, Any]) -> bool:
+        return bool((params.get("$expand") and self.expand_user_ok) or (params.get("$orderby") and self.orderby_ok))
+
+    def _get_without_rejected_query(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Find which optional query the server rejected without dropping the other.
+
+        Post.Stream is tried with $orderby and $expand=createUser. A 400 can be
+        either option. Dropping both because one failed would turn off newest-first
+        paging, or drop the author, on a server that accepts the other.
+        """
+        expand = bool(params.get("$expand") and self.expand_user_ok)
+        orderby = bool(params.get("$orderby") and self.orderby_ok)
+        probes: List[Tuple[str, Dict[str, Any]]] = []
+        if expand and orderby:
+            probes.append(("$expand", {k: v for k, v in params.items() if k != "$expand"}))
+            probes.append(("$orderby", {k: v for k, v in params.items() if k != "$orderby"}))
+            probes.append(("both", {k: v for k, v in params.items() if k not in ("$expand", "$orderby")}))
+        elif expand:
+            probes.append(("$expand", {k: v for k, v in params.items() if k != "$expand"}))
+        elif orderby:
+            probes.append(("$orderby", {k: v for k, v in params.items() if k != "$orderby"}))
+        for which, retried in probes:
+            data, status = self._http_get(path, retried)
+            if status == 401:
+                raise PermissionError("login failed: HTTP 401")
+            if status < 400 and data is not None:
+                self._note_rejected_query(which)
+                return data
+        raise RyverAPIError(400, path)
+
+    def _note_rejected_query(self, which: str) -> None:
+        if which in ("$expand", "both"):
+            self.expand_user_ok = False
+            log.warning(
+                "published topic query $expand=createUser was rejected; author names come from GET /users when the post includes an id"
+            )
+        if which in ("$orderby", "both"):
+            self.orderby_ok = False
+            log.warning("published topic query $orderby was rejected; continuing with $top and $skip only")
 
     def _list(self, path: str, select: str) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
@@ -194,6 +268,11 @@ class PublishedAPIListener:
 
     def _load_directory(self) -> List[Dict[str, Any]]:
         users = self._list("/users", "id,username,displayName")
+        self.users = {}
+        for user in users:
+            uid = _user_id(user)
+            if uid is not None:
+                self.users[uid] = user
         uname = (self.cfg.username or "").lower()
         me = next((u for u in users if (u.get("username") or "").lower() == uname), None)
         if not me:
@@ -227,6 +306,10 @@ class PublishedAPIListener:
             params: Dict[str, Any] = {"$format": "json", "$top": self.cfg.poll_top, "$skip": skip}
             if self.orderby_ok:
                 params["$orderby"] = "createDate desc"
+            # Same documented Post.Stream read. Without $expand, createUser is a
+            # deferred link and has no display name or username.
+            if self.expand_user_ok:
+                params["$expand"] = "createUser"
             batch = self._get(self._stream_path(room["kind"], room["id"]), **params).get("results") or []
             posts.extend(batch)
             if not primed or len(batch) < self.cfg.poll_top:
@@ -244,9 +327,25 @@ class PublishedAPIListener:
     def _sender_name(self, user: Dict[str, Any]) -> str:
         return user.get("displayName") or user.get("username") or user.get("__descriptor") or "unknown"
 
+    def _resolve_author(self, post: Dict[str, Any]) -> Dict[str, Any]:
+        """Prefer the GET /users record, the same way the live listener does.
+
+        An expanded createUser is often only an id plus __descriptor. The user
+        directory has the username and display name. A deferred createUser has
+        neither, so this returns it unchanged and the caller still says unknown.
+        """
+        raw = _create_user(post)
+        uid = _user_id(raw)
+        if uid is not None and uid in self.users:
+            return self.users[uid]
+        if uid is not None and raw.get("id") != uid:
+            return {**raw, "id": uid}
+        return raw
+
     def _forward(self, room: Dict[str, Any], post: Dict[str, Any], mid: str) -> Optional[Event]:
-        user = _create_user(post)
-        if user.get("id") == self.me.get("id"):
+        user = self._resolve_author(post)
+        author_id = _user_id(user)
+        if author_id is not None and author_id == _user_id(self.me):
             return None
         text = topic_text(post)
         if not self.mention_re.search(text):

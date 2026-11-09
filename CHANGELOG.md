@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Listener: new installs leave `RYVER_LISTENER_MODE` unset and use the live listener (member username and password, same pattern as Ryver's Hubot adapter). `rest` is an opt-in topic-only poll (no replies, chat, or DMs; about 60 seconds; dedupe in `state/published-seen.json`). Existing `bot.env` files that omit the variable stay on the live listener.
+- Listener rest mode: a new topic mention names the author (display name and username). Post.Stream is read with `$expand=createUser`, and that id is matched to `GET /users`. Live mode is unchanged.
 
 ## v0.1.3 - 2026-10-23
 - PLAYBOOK: @mention alerts now come from Peter's multi-bot listener on the shared box, not a Ryver Outbound Webhook. Added onboarding steps.

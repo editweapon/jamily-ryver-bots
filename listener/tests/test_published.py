@@ -82,12 +82,121 @@ def test_new_topic_mentions_in_team_and_forum(tmp_path):
     found = listener.poll_once()
     assert [e.message_id for e in found] == ["post-3", "post-4"]
     assert found[0].kind == "mention" and found[0].source == "Ops topic: check"
-    assert found[0].sender == "Carissa" and found[0].org == "jigsawhealth"
+    assert found[0].sender == "Carissa" and found[0].sender_username == "carissa" and found[0].org == "jigsawhealth"
     assert found[1].source.startswith("General topic:")
     paths = [path for path, _ in fake.calls]
     assert not any("Chat.History" in p or "postComments" in p or "User.Login" in p or "userNotifications" in p for p in paths)
     assert any(p.startswith("/workrooms(") and "Post.Stream" in p for p in paths)
     assert any(p.startswith("/forums(") and "Post.Stream" in p for p in paths)
+
+
+def test_rest_mention_names_the_author_when_create_user_has_no_name(tmp_path, caplog):
+    """Post.Stream defers createUser. Expanded, it is an id. The name comes from GET /users."""
+
+    class ExpandAware(FakeRyver):
+        def __call__(self, path, params):
+            self.calls.append((path, dict(params)))
+            if path == "/users":
+                return {"results": [
+                    {"id": 7, "username": "clara", "displayName": "Clara"},
+                    {"id": 8, "username": "peter", "displayName": "Peter"},
+                ]}
+            if path == "/workrooms":
+                return {"results": [{"id": 1, "name": "Jamily Bots"}]}
+            if path == "/forums":
+                return {"results": []}
+            if path.startswith("/workrooms("):
+                expanded = params.get("$expand") == "createUser"
+                posts = []
+                for item in self.team_posts:
+                    row = {k: v for k, v in item.items() if k != "_author_id"}
+                    author_id = item.get("_author_id", 8)
+                    if expanded:
+                        row["createUser"] = {"id": author_id}
+                    else:
+                        row["createUser"] = {
+                            "__deferred": {
+                                "uri": f"https://jigsawhealth.ryver.com/api/1/odata.svc/posts({item['id']})/createUser"
+                            }
+                        }
+                    posts.append(row)
+                return {"results": self._page(posts, params)}
+            raise AssertionError(path)
+
+    fake = ExpandAware()
+    fake.team_posts = [{
+        "id": 1, "subject": "old", "body": "hello @clara",
+        "createDate": "2026-11-01T00:00:00+00:00", "_author_id": 8,
+    }]
+    listener, got = make(tmp_path, fake)
+    assert listener.poll_once() == []
+    fake.team_posts.append({
+        "id": 3, "subject": "Test mention for @clara", "body": "@clara test from @peter",
+        "createDate": "2026-11-09T23:00:00+00:00", "_author_id": 8,
+    })
+    fake.team_posts.append({
+        "id": 4, "subject": "my own", "body": "@clara note to self",
+        "createDate": "2026-11-09T23:05:00+00:00", "_author_id": 7,
+    })
+    with caplog.at_level("INFO"):
+        found = listener.poll_once()
+    assert [e.message_id for e in found] == ["post-3"]
+    ev = found[0]
+    assert ev.kind == "mention"
+    assert ev.sender == "Peter" and ev.sender != "unknown"
+    assert ev.sender_username == "peter"
+    assert ev.source == "Jamily Bots topic: Test mention for @clara"
+    payload = ev.to_dict()
+    assert payload["sender"] == "Peter" and payload["sender_username"] == "peter"
+    assert any("EVENT mention" in rec.message and "from Peter" in rec.message for rec in caplog.records)
+    assert any(
+        params.get("$expand") == "createUser"
+        for path, params in fake.calls if "Post.Stream" in path
+    )
+    assert got[0].sender == "Peter" and got[0].sender_username == "peter"
+    paths = [path for path, _ in fake.calls]
+    assert not any("Chat.History" in p or "postComments" in p or "User.Login" in p or "userNotifications" in p for p in paths)
+
+
+def test_rest_mention_uses_expanded_descriptor_when_the_user_is_not_listed(tmp_path):
+    class ExpandAware(FakeRyver):
+        def __call__(self, path, params):
+            self.calls.append((path, dict(params)))
+            if path == "/users":
+                return {"results": [{"id": 7, "username": "clara", "displayName": "Clara"}]}
+            if path == "/workrooms":
+                return {"results": [{"id": 1, "name": "Jamily Bots"}]}
+            if path == "/forums":
+                return {"results": []}
+            if path.startswith("/workrooms("):
+                posts = []
+                for item in self.team_posts:
+                    row = dict(item)
+                    if params.get("$expand") == "createUser":
+                        row["createUser"] = {
+                            "__metadata": {
+                                "type": "Entity.User",
+                                "uri": "https://jigsawhealth.ryver.com/api/1/odata.svc/users(42)",
+                            },
+                            "__descriptor": "Peter",
+                        }
+                    else:
+                        row["createUser"] = {"__deferred": {"uri": "https://example.invalid/posts(9)/createUser"}}
+                    posts.append(row)
+                return {"results": self._page(posts, params)}
+            raise AssertionError(path)
+
+    fake = ExpandAware()
+    listener, _ = make(tmp_path, fake)
+    listener.poll_once()
+    fake.team_posts.append({
+        "id": 9, "subject": "Test mention for @clara", "body": "@clara test from @peter",
+        "createDate": "2026-11-09T23:10:00+00:00",
+    })
+    found = listener.poll_once()
+    assert len(found) == 1
+    assert found[0].sender == "Peter" and found[0].sender != "unknown"
+    assert found[0].sender_username is None
 
 
 def test_own_topic_and_non_mention_skipped(tmp_path):
@@ -239,6 +348,7 @@ def test_http_uses_basic_auth_and_documented_paths_only(tmp_path):
     assert any("Post.Stream(archived=false)" in u and "workrooms(1)" in u for u in urls)
     assert any("Post.Stream(archived=false)" in u and "forums(2)" in u for u in urls)
     assert any("orderby" in u and "createDate" in u for u in urls)
+    assert any("expand" in u and "createUser" in u for u in urls)
 
 
 @responses.activate
@@ -263,7 +373,63 @@ def test_orderby_rejection_falls_back_to_top_and_skip(tmp_path):
     listener = PublishedAPIListener(cfg, pause=0, bot_router=None)
     listener.poll_once()
     assert listener.orderby_ok is False
+    assert listener.expand_user_ok is True
     assert any("Post.Stream" in c.request.url and "orderby" not in c.request.url for c in responses.calls)
+
+
+@responses.activate
+def test_author_from_directory_when_expand_is_rejected(tmp_path):
+    state = {"streams": 0}
+
+    def cb(request):
+        if "expand" in request.url:
+            return (400, {}, "no expand")
+        if "/users" in request.url:
+            results = [
+                {"id": 7, "username": "clara", "displayName": "Clara"},
+                {"id": 8, "username": "peter", "displayName": "Peter"},
+            ]
+        elif "/workrooms" in request.url and "Post.Stream" not in request.url:
+            results = [{"id": 1, "name": "Jamily Bots"}]
+        elif "/forums" in request.url and "Post.Stream" not in request.url:
+            results = []
+        elif "Post.Stream" in request.url:
+            state["streams"] += 1
+            if state["streams"] == 1:
+                results = [{
+                    "id": 1, "subject": "old", "body": "old",
+                    "createDate": "2026-11-01T00:00:00+00:00",
+                    "createUser": {"id": 8},
+                }]
+            else:
+                results = [
+                    {
+                        "id": 1, "subject": "old", "body": "old",
+                        "createDate": "2026-11-01T00:00:00+00:00",
+                        "createUser": {"id": 8},
+                    },
+                    {
+                        "id": 3, "subject": "Test mention for @clara", "body": "@clara test from @peter",
+                        "createDate": "2026-11-09T23:20:00+00:00",
+                        "createUser": {"id": 8},
+                    },
+                ]
+        else:
+            raise AssertionError(request.url)
+        return (200, {}, json.dumps({"d": {"results": results}}))
+
+    responses.add_callback(
+        responses.GET, re.compile(re.escape(API)), callback=cb, content_type="application/json")
+    cfg = RyverConfig(org="jigsawhealth", username="clara", password="s3cret-value",
+                      state_dir=str(tmp_path), listener_mode="rest")
+    listener = PublishedAPIListener(cfg, pause=0, bot_router=None)
+    assert listener.poll_once() == []
+    found = listener.poll_once()
+    assert listener.expand_user_ok is False and listener.orderby_ok is True
+    assert len(found) == 1
+    assert found[0].sender == "Peter" and found[0].sender_username == "peter"
+    assert found[0].to_dict()["sender"] == "Peter"
+    assert any("orderby" in c.request.url and "expand" not in c.request.url for c in responses.calls)
 
 
 def test_new_install_example_defaults_live_and_has_no_password():
